@@ -1,12 +1,19 @@
-import { PublicShell } from '@/layouts/public-shell';
+import { WorkspaceShell } from '@/layouts/workspace-shell';
 import type { BreadcrumbItem } from '@/types';
 
+/**
+ * Default layout for authenticated workspace pages (dashboard, organizer,
+ * admin, settings). Public-facing attendee pages use PublicShell directly
+ * via the layout picker in app.tsx.
+ */
 export default function AppLayout({
-    breadcrumbs: _breadcrumbs = [],
+    breadcrumbs = [],
     children,
 }: {
     breadcrumbs?: BreadcrumbItem[];
     children: React.ReactNode;
 }) {
-    return <PublicShell width="wide">{children}</PublicShell>;
+    return (
+        <WorkspaceShell breadcrumbs={breadcrumbs}>{children}</WorkspaceShell>
+    );
 }
