@@ -10,8 +10,16 @@ export type User = {
     [key: string]: unknown;
 };
 
+export type OrganizerMembership = {
+    slug: string;
+    name: string;
+    role: string | null;
+};
+
 export type Auth = {
     user: User;
+    is_system_admin?: boolean;
+    organizer_memberships?: OrganizerMembership[];
 };
 
 export type Passkey = {

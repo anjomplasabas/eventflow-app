@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,11 +36,27 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $organizerMemberships = [];
+        if ($user instanceof User) {
+            $organizerMemberships = $user->organizers()
+                ->get(['organizers.id', 'slug', 'name'])
+                ->map(fn ($o) => [
+                    'slug' => $o->slug,
+                    'name' => $o->name,
+                    'role' => $o->getAttribute('pivot')?->getAttribute('role'),
+                ])
+                ->values()
+                ->all();
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'is_system_admin' => $user instanceof User && $user->isSystemAdmin(),
+                'organizer_memberships' => $organizerMemberships,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
