@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Payments\InitializeCheckout;
 use App\Actions\Registrations\CancelRegistration;
+use App\Actions\Registrations\CreateGuestRegistration;
 use App\Actions\Registrations\CreateRegistration;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationStatus;
@@ -11,6 +12,7 @@ use App\Exceptions\CapacityExhausted;
 use App\Exceptions\IdempotencyConflict;
 use App\Exceptions\InvalidEventStateTransition;
 use App\Exceptions\RegistrationNotAllowed;
+use App\Http\Requests\GuestRegistrationRequest;
 use App\Http\Requests\StoreRegistrationRequest;
 use App\Models\Event;
 use App\Models\Organizer;
@@ -55,6 +57,53 @@ class RegistrationController extends Controller
                 $event,
                 $ticketType,
                 $user,
+                $request->attendee(),
+                $request->integer('quantity'),
+                $request->input('idempotency_key'),
+            );
+        } catch (CapacityExhausted|RegistrationNotAllowed|IdempotencyConflict $e) {
+            return back()->withErrors(['registration' => $e->getMessage()])->withInput();
+        }
+
+        if ($registration->status === RegistrationStatus::PaymentPending) {
+            ['session' => $session] = app(InitializeCheckout::class)($registration);
+
+            return redirect($session->redirectUrl);
+        }
+
+        return redirect()->route('events.registration.confirmation', [
+            'organizer' => $organizer,
+            'event' => $event,
+            'reference' => $registration->reference,
+        ]);
+    }
+
+    public function guestStore(
+        GuestRegistrationRequest $request,
+        Organizer $organizer,
+        Event $event,
+        CreateGuestRegistration $create,
+    ): RedirectResponse {
+        if ($event->organizer_id !== $organizer->id) {
+            throw new NotFoundHttpException;
+        }
+
+        if ($event->visibility === EventVisibility::Private) {
+            $code = (string) $request->input('access_code', '');
+            if ($code === '' || ! hash_equals((string) $event->access_code, $code)) {
+                return redirect()->route('events.show', [
+                    'organizer' => $organizer,
+                    'event' => $event,
+                ])->withErrors(['access_code' => __('Access code is required for this event.')]);
+            }
+        }
+
+        $ticketType = $request->ticketType();
+
+        try {
+            $registration = $create(
+                $event,
+                $ticketType,
                 $request->attendee(),
                 $request->integer('quantity'),
                 $request->input('idempotency_key'),

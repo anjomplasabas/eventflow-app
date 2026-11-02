@@ -302,41 +302,28 @@ function RegistrationSection({
         );
     }
 
-    if (!auth.user) {
-        return (
-            <div className="rounded-2xl border border-border/70 bg-card p-6">
-                <h2 className="mb-2 font-semibold">Register for this event</h2>
-                <p className="mb-4 text-sm text-muted-foreground">
-                    Sign in to secure your spot — takes a moment.
-                </p>
-                <Button asChild className="w-full">
-                    <Link
-                        href={`/login?intended=/events/${organizer.slug}/${event.slug}`}
-                    >
-                        Sign in to register
-                    </Link>
-                </Button>
-            </div>
-        );
-    }
-
     const selected = ticketTypes.find((t) => t.id === selectedId) ?? null;
     const user = auth.user;
+    const isGuest = user === null;
+    const formProps = isGuest
+        ? RegistrationController.guestStore.form({
+              organizer: organizer.slug,
+              event: event.slug,
+          })
+        : RegistrationController.store.form({
+              organizer: organizer.slug,
+              event: event.slug,
+          });
 
     return (
         <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm">
             <h2 className="mb-1 text-lg font-semibold">Reserve your spot</h2>
             <p className="mb-5 text-sm text-muted-foreground">
-                Capacity is handled in real time — your seat is locked the
-                moment you submit.
+                {isGuest
+                    ? "We'll create an account for you with the email below — no password needed to register."
+                    : 'Capacity is handled in real time — your seat is locked the moment you submit.'}
             </p>
-            <Form
-                {...RegistrationController.store.form({
-                    organizer: organizer.slug,
-                    event: event.slug,
-                })}
-                className="space-y-4"
-            >
+            <Form {...formProps} className="space-y-4">
                 {({ errors, processing }) => (
                     <>
                         <input
@@ -399,7 +386,7 @@ function RegistrationSection({
                                 <Input
                                     id="attendee_name"
                                     name="attendee[name]"
-                                    defaultValue={user.name}
+                                    defaultValue={user?.name}
                                     required
                                 />
                                 <InputError message={errors['attendee.name']} />
@@ -410,7 +397,8 @@ function RegistrationSection({
                                     id="attendee_email"
                                     name="attendee[email]"
                                     type="email"
-                                    defaultValue={user.email}
+                                    defaultValue={user?.email}
+                                    readOnly={!isGuest}
                                     required
                                 />
                                 <InputError
@@ -471,6 +459,17 @@ function RegistrationSection({
                     </>
                 )}
             </Form>
+            {isGuest && (
+                <p className="mt-4 text-center text-xs text-muted-foreground">
+                    Already have an account?{' '}
+                    <Link
+                        href={`/login?intended=/events/${organizer.slug}/${event.slug}`}
+                        className="font-medium text-primary hover:underline"
+                    >
+                        Sign in
+                    </Link>
+                </p>
+            )}
         </div>
     );
 }

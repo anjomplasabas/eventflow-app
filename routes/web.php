@@ -20,9 +20,15 @@ Route::get('events/{organizer:slug}/{event:slug}', [PublicEventController::class
     ->scopeBindings()
     ->name('events.show');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+// Guest registration — no auth; creates an attendee account on the fly.
+Route::post('events/{organizer:slug}/{event:slug}/guest-register', [RegistrationController::class, 'guestStore'])
+    ->scopeBindings()
+    ->middleware('throttle:10,1')
+    ->name('events.guest-register');
 
+// Auth required but email verification not — attendees who guest-registered
+// are logged in but still unverified when they hit the confirmation page.
+Route::middleware(['auth'])->group(function () {
     Route::post('events/{organizer:slug}/{event:slug}/register', [RegistrationController::class, 'store'])
         ->scopeBindings()
         ->middleware('throttle:30,1')
@@ -37,6 +43,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('payments/sandbox/{reference}', [PaymentSandboxController::class, 'show'])->name('payments.sandbox.show');
     Route::post('payments/sandbox/{reference}/complete', [PaymentSandboxController::class, 'complete'])->name('payments.sandbox.complete');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::inertia('dashboard', 'dashboard')->name('dashboard');
 
     Route::scopeBindings()->prefix('organizer/{organizer:slug}')->name('organizer.')->group(function () {
         Route::get('events', [OrganizerEventController::class, 'index'])->name('events.index');
