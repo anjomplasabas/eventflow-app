@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Organizer;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateAttendeeExport;
+use App\Jobs\GenerateCheckInExport;
 use App\Jobs\GenerateReceiptRegisterExport;
 use App\Jobs\GenerateReceiptZipExport;
 use App\Models\Export;
@@ -80,6 +82,52 @@ class ExportController extends Controller
         GenerateReceiptZipExport::dispatch($export->id);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('ZIP export queued.')]);
+
+        return redirect()->route('organizer.exports.index', $organizer);
+    }
+
+    public function storeAttendees(Request $request, Organizer $organizer): RedirectResponse
+    {
+        $this->authorize('update', $organizer);
+
+        $filters = $request->validate([
+            'event_id' => ['nullable', 'integer', 'exists:events,id'],
+        ]);
+
+        $export = Export::query()->create([
+            'organizer_id' => $organizer->id,
+            'user_id' => (int) $request->user()?->id,
+            'type' => 'attendees',
+            'filters' => $filters !== [] ? $filters : null,
+            'expires_at' => now()->addDays(7),
+        ]);
+
+        GenerateAttendeeExport::dispatch($export->id);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Attendee export queued.')]);
+
+        return redirect()->route('organizer.exports.index', $organizer);
+    }
+
+    public function storeCheckIns(Request $request, Organizer $organizer): RedirectResponse
+    {
+        $this->authorize('update', $organizer);
+
+        $filters = $request->validate([
+            'event_id' => ['nullable', 'integer', 'exists:events,id'],
+        ]);
+
+        $export = Export::query()->create([
+            'organizer_id' => $organizer->id,
+            'user_id' => (int) $request->user()?->id,
+            'type' => 'check_ins',
+            'filters' => $filters !== [] ? $filters : null,
+            'expires_at' => now()->addDays(7),
+        ]);
+
+        GenerateCheckInExport::dispatch($export->id);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Check-in export queued.')]);
 
         return redirect()->route('organizer.exports.index', $organizer);
     }

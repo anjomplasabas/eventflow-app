@@ -118,4 +118,12 @@ class Registration extends Model
     {
         return $this->hasMany(SeatReservation::class);
     }
+
+    /**
+     * @return HasMany<Ticket, $this>
+     */
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
+    }
 }

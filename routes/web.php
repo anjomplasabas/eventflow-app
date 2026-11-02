@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Organizer\CheckInController as OrganizerCheckInController;
 use App\Http\Controllers\Organizer\EventController as OrganizerEventController;
 use App\Http\Controllers\Organizer\ExportController as OrganizerExportController;
 use App\Http\Controllers\Organizer\TicketTypeController as OrganizerTicketTypeController;
@@ -75,7 +76,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('exports', [OrganizerExportController::class, 'index'])->name('exports.index');
         Route::post('exports/receipt-register', [OrganizerExportController::class, 'storeRegister'])->name('exports.receipt-register');
         Route::post('exports/receipt-zip', [OrganizerExportController::class, 'storeZip'])->name('exports.receipt-zip');
+        Route::post('exports/attendees', [OrganizerExportController::class, 'storeAttendees'])->name('exports.attendees');
+        Route::post('exports/check-ins', [OrganizerExportController::class, 'storeCheckIns'])->name('exports.check-ins');
         Route::get('exports/{uuid}/download', [OrganizerExportController::class, 'download'])->name('exports.download');
+
+        Route::get('events/{event:public_id}/check-in', [OrganizerCheckInController::class, 'show'])->name('events.check-in.show');
+        Route::post('events/{event:public_id}/check-in/scan', [OrganizerCheckInController::class, 'scan'])->name('events.check-in.scan');
+        Route::get('events/{event:public_id}/check-in/search', [OrganizerCheckInController::class, 'search'])->name('events.check-in.search');
+        Route::post('events/{event:public_id}/check-in/{checkInId}/reverse', [OrganizerCheckInController::class, 'reverse'])->name('events.check-in.reverse');
 
         Route::get('events/{event:public_id}/ticket-types', [OrganizerTicketTypeController::class, 'index'])->name('events.ticket-types.index');
         Route::post('events/{event:public_id}/ticket-types', [OrganizerTicketTypeController::class, 'store'])->name('events.ticket-types.store');
