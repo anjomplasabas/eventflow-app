@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PublicShell } from '@/layouts/public-shell';
 import { Form, Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
@@ -86,48 +85,46 @@ export default function PublicEventShow({
         return (
             <>
                 <Head title={`${event.title} · Private event`} />
-                <PublicShell>
-                    <div className="mx-auto w-full max-w-xl pt-12 lg:pt-16">
-                        <div className="mb-6 space-y-3">
-                            <Badge
-                                variant="outline"
-                                className="border-primary/40 bg-primary/10 text-primary"
-                            >
-                                Private event
-                            </Badge>
-                            <h1 className="text-3xl font-semibold tracking-tight">
-                                {event.title}
-                            </h1>
-                            <p className="text-muted-foreground">
-                                Hosted by {organizer.name}
-                            </p>
-                        </div>
-                        <form
-                            method="get"
-                            className="space-y-4 rounded-2xl border border-border/70 bg-card p-6 shadow-sm"
+                <div className="mx-auto w-full max-w-xl pt-12 lg:pt-16">
+                    <div className="mb-6 space-y-3">
+                        <Badge
+                            variant="outline"
+                            className="border-primary/40 bg-primary/10 text-primary"
                         >
-                            <div className="space-y-2">
-                                <Label htmlFor="code">Access code</Label>
-                                <Input
-                                    id="code"
-                                    name="code"
-                                    value={code}
-                                    onChange={(e) => setCode(e.target.value)}
-                                    autoFocus
-                                    required
-                                />
-                                {code_invalid && (
-                                    <p className="text-sm text-destructive">
-                                        That code is not valid.
-                                    </p>
-                                )}
-                            </div>
-                            <Button type="submit" className="w-full">
-                                Unlock event
-                            </Button>
-                        </form>
+                            Private event
+                        </Badge>
+                        <h1 className="text-3xl font-semibold tracking-tight">
+                            {event.title}
+                        </h1>
+                        <p className="text-muted-foreground">
+                            Hosted by {organizer.name}
+                        </p>
                     </div>
-                </PublicShell>
+                    <form
+                        method="get"
+                        className="space-y-4 rounded-2xl border border-border/70 bg-card p-6 shadow-sm"
+                    >
+                        <div className="space-y-2">
+                            <Label htmlFor="code">Access code</Label>
+                            <Input
+                                id="code"
+                                name="code"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value)}
+                                autoFocus
+                                required
+                            />
+                            {code_invalid && (
+                                <p className="text-sm text-destructive">
+                                    That code is not valid.
+                                </p>
+                            )}
+                        </div>
+                        <Button type="submit" className="w-full">
+                            Unlock event
+                        </Button>
+                    </form>
+                </div>
             </>
         );
     }
@@ -138,109 +135,104 @@ export default function PublicEventShow({
     return (
         <>
             <Head title={`${event.title} · EventFlow`} />
-            <PublicShell>
-                <article className="flex flex-col gap-10 pt-10 lg:pt-14">
-                    <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="space-y-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                                {detail?.category && (
-                                    <Badge
-                                        variant="secondary"
-                                        className="bg-primary/10 text-primary"
-                                    >
-                                        {detail.category}
+            <article className="flex flex-col gap-10 pt-10 lg:pt-14">
+                <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="space-y-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                            {detail?.category && (
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-primary/10 text-primary"
+                                >
+                                    {detail.category}
+                                </Badge>
+                            )}
+                            {detail?.status &&
+                                detail.status !== 'published' && (
+                                    <Badge variant="outline">
+                                        {detail.status.replace('_', ' ')}
                                     </Badge>
                                 )}
-                                {detail?.status &&
-                                    detail.status !== 'published' && (
-                                        <Badge variant="outline">
-                                            {detail.status.replace('_', ' ')}
-                                        </Badge>
-                                    )}
-                            </div>
-                            <h1 className="max-w-3xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-                                {event.title}
-                            </h1>
-                            <p className="text-muted-foreground">
-                                Hosted by{' '}
-                                <span className="font-medium text-foreground">
-                                    {organizer.name}
-                                </span>
-                            </p>
                         </div>
-                    </header>
+                        <h1 className="max-w-3xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
+                            {event.title}
+                        </h1>
+                        <p className="text-muted-foreground">
+                            Hosted by{' '}
+                            <span className="font-medium text-foreground">
+                                {organizer.name}
+                            </span>
+                        </p>
+                    </div>
+                </header>
 
-                    <div className="relative aspect-[16/7] w-full overflow-hidden rounded-3xl border border-border/70">
-                        {event.cover_image_url ? (
-                            <img
-                                src={event.cover_image_url}
-                                alt=""
-                                className="h-full w-full object-cover"
+                <div className="relative aspect-[16/7] w-full overflow-hidden rounded-3xl border border-border/70">
+                    {event.cover_image_url ? (
+                        <img
+                            src={event.cover_image_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-primary/25 via-cyan-400/15 to-sky-400/20">
+                            <div className="h-full w-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_55%)]" />
+                        </div>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
+                    <div className="space-y-8">
+                        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <InfoTile
+                                label="Starts"
+                                value={formatDateTime(event.starts_at)}
                             />
-                        ) : (
-                            <div className="h-full w-full bg-gradient-to-br from-primary/25 via-cyan-400/15 to-sky-400/20">
-                                <div className="h-full w-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_55%)]" />
-                            </div>
-                        )}
-                    </div>
+                            {detail?.ends_at && (
+                                <InfoTile
+                                    label="Ends"
+                                    value={formatDateTime(detail.ends_at)}
+                                />
+                            )}
+                            <InfoTile label="Timezone" value={event.timezone} />
+                        </section>
 
-                    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
-                        <div className="space-y-8">
-                            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                <InfoTile
-                                    label="Starts"
-                                    value={formatDateTime(event.starts_at)}
-                                />
-                                {detail?.ends_at && (
-                                    <InfoTile
-                                        label="Ends"
-                                        value={formatDateTime(detail.ends_at)}
-                                    />
-                                )}
-                                <InfoTile
-                                    label="Timezone"
-                                    value={event.timezone}
-                                />
+                        {detail?.description && (
+                            <section className="space-y-3">
+                                <h2 className="text-xl font-semibold tracking-tight">
+                                    About this event
+                                </h2>
+                                <p className="leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                                    {detail.description}
+                                </p>
                             </section>
+                        )}
 
-                            {detail?.description && (
-                                <section className="space-y-3">
-                                    <h2 className="text-xl font-semibold tracking-tight">
-                                        About this event
-                                    </h2>
-                                    <p className="leading-relaxed whitespace-pre-wrap text-muted-foreground">
-                                        {detail.description}
-                                    </p>
-                                </section>
-                            )}
+                        {detail?.attendee_instructions && (
+                            <InfoCard title="Attendee notes">
+                                {detail.attendee_instructions}
+                            </InfoCard>
+                        )}
 
-                            {detail?.attendee_instructions && (
-                                <InfoCard title="Attendee notes">
-                                    {detail.attendee_instructions}
-                                </InfoCard>
-                            )}
-
-                            {detail?.cancellation_policy && (
-                                <InfoCard title="Cancellation policy">
-                                    {detail.cancellation_policy}
-                                </InfoCard>
-                            )}
-                        </div>
-
-                        {detail && (
-                            <aside className="lg:sticky lg:top-6 lg:self-start">
-                                <RegistrationSection
-                                    organizer={organizer}
-                                    event={detail}
-                                    ticketTypes={ticketTypes}
-                                    auth={auth}
-                                    accessCode={access_code ?? null}
-                                />
-                            </aside>
+                        {detail?.cancellation_policy && (
+                            <InfoCard title="Cancellation policy">
+                                {detail.cancellation_policy}
+                            </InfoCard>
                         )}
                     </div>
-                </article>
-            </PublicShell>
+
+                    {detail && (
+                        <aside className="lg:sticky lg:top-6 lg:self-start">
+                            <RegistrationSection
+                                organizer={organizer}
+                                event={detail}
+                                ticketTypes={ticketTypes}
+                                auth={auth}
+                                accessCode={access_code ?? null}
+                            />
+                        </aside>
+                    )}
+                </div>
+            </article>
         </>
     );
 }
