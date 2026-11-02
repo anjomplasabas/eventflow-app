@@ -2,6 +2,8 @@
 
 namespace App\Actions\Registrations;
 
+use App\Actions\Receipts\IssueReceipt;
+use App\Actions\Tickets\IssueTickets;
 use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
 use App\Exceptions\CapacityExhausted;
@@ -115,6 +117,8 @@ class CreateRegistration
             if ($registration->status === RegistrationStatus::Confirmed) {
                 DB::afterCommit(function () use ($registrationId, $attendeeEmail, $attendeeName): void {
                     $registration = Registration::query()->with(['event.organizer', 'ticketType', 'attendees'])->findOrFail($registrationId);
+                    app(IssueReceipt::class)($registration);
+                    app(IssueTickets::class)($registration);
                     Notification::route('mail', [$attendeeEmail => $attendeeName])
                         ->notify(new RegistrationConfirmedNotification($registration));
                 });

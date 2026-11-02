@@ -2,6 +2,8 @@
 
 namespace App\Actions\Payments;
 
+use App\Actions\Receipts\IssueReceipt;
+use App\Actions\Tickets\IssueTickets;
 use App\Enums\PaymentStatus;
 use App\Enums\RegistrationStatus;
 use App\Exceptions\InvalidEventStateTransition;
@@ -71,6 +73,8 @@ class RecordPaymentSucceeded
             $registration = Registration::query()
                 ->with(['event.organizer', 'ticketType', 'attendees'])
                 ->findOrFail($notifyRegistrationId);
+            app(IssueReceipt::class)($registration, $result);
+            app(IssueTickets::class)($registration);
             $attendee = $registration->attendees->first();
             if ($attendee !== null) {
                 Notification::route('mail', [$attendee->email => $attendee->name])
