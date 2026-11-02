@@ -43,6 +43,8 @@ class EventFactory extends Factory
             'registration_closes_at' => $registrationCloses,
             'capacity' => fake()->numberBetween(20, 500),
             'per_attendee_limit' => 1,
+            'waitlist_enabled' => false,
+            'waitlist_capacity' => null,
             'cancellation_policy' => null,
             'attendee_instructions' => null,
         ];

@@ -12,6 +12,7 @@ use App\Models\Registration;
 use App\Models\TicketType;
 use App\Models\User;
 use App\Notifications\RegistrationConfirmedNotification;
+use App\Notifications\WaitlistJoinedNotification;
 use App\Services\Audit\AuditLogger;
 use App\Services\Registration\CapacityCalculator;
 use Illuminate\Support\Facades\DB;
@@ -60,15 +61,24 @@ class CreateRegistration
 
             $this->assertTicketTypeAvailable($lockedTicketType, $quantity);
 
+            $goingToWaitlist = false;
             if (! $this->capacity->canFit($event, $lockedTicketType, $quantity)) {
-                $remainingType = $this->capacity->ticketTypeRemaining($lockedTicketType);
-                if ($remainingType !== null && $remainingType < $quantity) {
-                    throw CapacityExhausted::forTicketType($lockedTicketType->name);
+                if (! $event->waitlist_enabled) {
+                    $remainingType = $this->capacity->ticketTypeRemaining($lockedTicketType);
+                    if ($remainingType !== null && $remainingType < $quantity) {
+                        throw CapacityExhausted::forTicketType($lockedTicketType->name);
+                    }
+                    throw CapacityExhausted::forEvent($event->title);
                 }
-                throw CapacityExhausted::forEvent($event->title);
+                $this->assertWaitlistHasRoom($event);
+                $goingToWaitlist = true;
             }
 
-            $status = $lockedTicketType->isFree() ? RegistrationStatus::Confirmed : RegistrationStatus::PaymentPending;
+            if ($goingToWaitlist) {
+                $status = RegistrationStatus::Waitlisted;
+            } else {
+                $status = $lockedTicketType->isFree() ? RegistrationStatus::Confirmed : RegistrationStatus::PaymentPending;
+            }
 
             $registration = Registration::query()->create([
                 'event_id' => $event->id,
@@ -79,6 +89,8 @@ class CreateRegistration
                 'idempotency_key' => $idempotencyKey,
                 'terms_accepted_at' => now(),
                 'confirmed_at' => $status === RegistrationStatus::Confirmed ? now() : null,
+                'waitlisted_at' => $goingToWaitlist ? now() : null,
+                'waitlist_position' => $goingToWaitlist ? $this->nextWaitlistPosition($event, $lockedTicketType) : null,
             ]);
 
             $registration->attendees()->create([
@@ -93,21 +105,56 @@ class CreateRegistration
                 'status' => $registration->status->value,
                 'quantity' => $registration->quantity,
                 'ticket_type_id' => $lockedTicketType->id,
+                'waitlist_position' => $registration->waitlist_position,
             ], actor: $user);
 
+            $attendeeEmail = $attendee['email'];
+            $attendeeName = $attendee['name'];
+            $registrationId = $registration->id;
+
             if ($registration->status === RegistrationStatus::Confirmed) {
-                $attendeeEmail = $attendee['email'];
-                $attendeeName = $attendee['name'];
-                $registrationId = $registration->id;
                 DB::afterCommit(function () use ($registrationId, $attendeeEmail, $attendeeName): void {
                     $registration = Registration::query()->with(['event.organizer', 'ticketType', 'attendees'])->findOrFail($registrationId);
                     Notification::route('mail', [$attendeeEmail => $attendeeName])
                         ->notify(new RegistrationConfirmedNotification($registration));
                 });
+            } elseif ($registration->status === RegistrationStatus::Waitlisted) {
+                DB::afterCommit(function () use ($registrationId, $attendeeEmail, $attendeeName): void {
+                    $registration = Registration::query()->with(['event.organizer', 'ticketType', 'attendees'])->findOrFail($registrationId);
+                    Notification::route('mail', [$attendeeEmail => $attendeeName])
+                        ->notify(new WaitlistJoinedNotification($registration));
+                });
             }
 
             return $registration;
         });
+    }
+
+    private function assertWaitlistHasRoom(Event $event): void
+    {
+        if ($event->waitlist_capacity === null) {
+            return;
+        }
+
+        $current = Registration::query()
+            ->where('event_id', $event->id)
+            ->where('status', RegistrationStatus::Waitlisted)
+            ->count();
+
+        if ($current >= $event->waitlist_capacity) {
+            throw CapacityExhausted::forEvent($event->title.' waitlist');
+        }
+    }
+
+    private function nextWaitlistPosition(Event $event, TicketType $ticketType): int
+    {
+        $max = (int) Registration::query()
+            ->where('event_id', $event->id)
+            ->where('ticket_type_id', $ticketType->id)
+            ->where('status', RegistrationStatus::Waitlisted)
+            ->max('waitlist_position');
+
+        return $max + 1;
     }
 
     private function assertEventOpen(Event $event): void

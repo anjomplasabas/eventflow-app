@@ -5,6 +5,7 @@ namespace App\Actions\Registrations;
 use App\Enums\RegistrationStatus;
 use App\Exceptions\InvalidEventStateTransition;
 use App\Models\Registration;
+use App\Models\TicketType;
 use App\Models\User;
 use App\Notifications\RegistrationCancelledNotification;
 use App\Services\Audit\AuditLogger;
@@ -35,6 +36,9 @@ class CancelRegistration
             ], actor: $actor);
 
             $registrationId = $registration->id;
+            $ticketTypeId = $registration->ticket_type_id;
+            $wasOccupying = $registration->getOriginal('status') !== RegistrationStatus::Waitlisted->value;
+
             DB::afterCommit(function () use ($registrationId, $reason): void {
                 $registration = Registration::query()
                     ->with(['event.organizer', 'ticketType', 'attendees'])
@@ -46,6 +50,15 @@ class CancelRegistration
                 Notification::route('mail', [$attendee->email => $attendee->name])
                     ->notify(new RegistrationCancelledNotification($registration, $reason));
             });
+
+            if ($wasOccupying) {
+                DB::afterCommit(function () use ($ticketTypeId): void {
+                    $ticketType = TicketType::query()->find($ticketTypeId);
+                    if ($ticketType !== null) {
+                        app(PromoteWaitlist::class)($ticketType);
+                    }
+                });
+            }
 
             return $registration;
         });

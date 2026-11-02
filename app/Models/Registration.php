@@ -28,6 +28,7 @@ use Illuminate\Support\Str;
  * @property CarbonInterface|null $confirmed_at
  * @property CarbonInterface|null $cancelled_at
  * @property CarbonInterface|null $waitlisted_at
+ * @property int|null $waitlist_position
  * @property CarbonInterface|null $checked_in_at
  * @property CarbonInterface|null $reminder_sent_at
  * @property CarbonInterface|null $created_at
@@ -40,7 +41,7 @@ use Illuminate\Support\Str;
 #[Fillable([
     'reference', 'event_id', 'ticket_type_id', 'user_id', 'status', 'quantity',
     'idempotency_key', 'terms_accepted_at', 'confirmed_at', 'cancelled_at',
-    'waitlisted_at', 'checked_in_at', 'reminder_sent_at',
+    'waitlisted_at', 'waitlist_position', 'checked_in_at', 'reminder_sent_at',
 ])]
 #[UsePolicy(RegistrationPolicy::class)]
 class Registration extends Model

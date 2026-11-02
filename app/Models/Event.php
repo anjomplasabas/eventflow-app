@@ -35,6 +35,8 @@ use Illuminate\Support\Str;
  * @property Carbon|null $registration_closes_at
  * @property int|null $capacity
  * @property int $per_attendee_limit
+ * @property bool $waitlist_enabled
+ * @property int|null $waitlist_capacity
  * @property string|null $cancellation_policy
  * @property string|null $attendee_instructions
  * @property Carbon|null $created_at
@@ -59,6 +61,8 @@ use Illuminate\Support\Str;
     'registration_closes_at',
     'capacity',
     'per_attendee_limit',
+    'waitlist_enabled',
+    'waitlist_capacity',
     'cancellation_policy',
     'attendee_instructions',
 ])]
@@ -89,6 +93,7 @@ class Event extends Model
             'ends_at' => 'datetime',
             'registration_opens_at' => 'datetime',
             'registration_closes_at' => 'datetime',
+            'waitlist_enabled' => 'bool',
         ];
     }
 
