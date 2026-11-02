@@ -30,15 +30,20 @@ Then either `composer dev` or run `php artisan serve` + `npm run dev` separately
 
 Password for every seeded account: `password`
 
-| Role            | Email                |
-| --------------- | -------------------- |
-| System admin    | admin@eventflow.test |
-| Organizer owner | alice@acme.test      |
-| Organizer staff | bob@acme.test        |
-| Organizer owner | carla@luma.test      |
-| Attendee        | dana@attendee.test   |
+| Role            | Email                | Organizer context     |
+| --------------- | -------------------- | --------------------- |
+| System admin    | admin@eventflow.test | —                     |
+| Organizer owner | alice@pulse.test     | Pulse Collective      |
+| Organizer staff | bob@pulse.test       | Pulse Collective      |
+| Organizer owner | carla@northstar.test | Northstar Conferences |
+| Attendee        | dana@attendee.test   | —                     |
 
-Seeded organizers: **Acme Events** (`acme-events`) and **Luma Collective** (`luma-collective`). Each has 8 demo events spanning draft, published, scheduled, sold-out, completed, cancelled, and one private event (access code `LEAD-2026`).
+Seeded organizers:
+
+- **Pulse Collective** (`pulse-collective`) — music / culture promoter. Harbor Lights Festival, Midnight Sessions, Acoustic Garden, Riverside Fest (completed), a cancelled showcase, a draft solstice rave, and the private rooftop preview (access code `AFTERGLOW-27`).
+- **Northstar Conferences** (`northstar-conferences`) — business / tech conferences. Northstar Summit 2027, AI Builders Day, Fintech Founders Breakfast, Startup Pitch Night, Northstar Summit 2026 (completed), a cancelled growth masterclass, and the Executive Leadership Retreat (access code `LEAD-NS27`).
+
+Each published event ships with 1–4 realistic ticket types (free + paid tiers in USD minor units) and multi-paragraph descriptions with attendee notes and cancellation policies, so detail pages have real content to show.
 
 ## Local URLs
 
