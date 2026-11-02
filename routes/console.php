@@ -22,3 +22,8 @@ Schedule::command('eventflow:mark-events-completed')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('eventflow:delete-expired-exports')
+    ->daily()
+    ->withoutOverlapping()
+    ->runInBackground();

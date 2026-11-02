@@ -9,8 +9,9 @@ Production-style event registration and check-in platform built with Laravel 13,
 - **Batch 3 — Queues & Notifications** ✅ Queued mailables, scheduled commands for expiring abandoned registrations, event reminders, and auto-completing events.
 - **Batch 4 — Waitlist** ✅ FIFO waitlist with per-event opt-in and optional capacity cap, auto-promotion on cancel/expire with lockForUpdate, free → confirmed and paid → payment_pending, dedicated join/promoted notifications.
 - **Batch 5 — Payments & Webhooks** ✅ `PaymentGateway` interface with a sandbox adapter, signed-webhook inbox with idempotent `provider_event_id` dedupe, `ProcessPaymentWebhook` job on the `critical` queue, out-of-order replay protection, refund workflow with partial/full refund status transitions.
+- **Batch 6 — Tickets & E-Receipts** ✅ Immutable receipt snapshots with opaque `RCPT-XXXXXXXXXX` numbers, dompdf-rendered PDFs stored to the private `local` disk via queued jobs, per-seat QR tickets with 32-char opaque tokens, authenticated downloads, public verification page with no PII, organizer-triggered CSV receipt register + batch ZIP exports with 7-day expiry and daily cleanup.
 
-Remaining batches: tickets/e-receipts · check-in/reporting · hardening.
+Remaining batches: check-in/reporting · hardening.
 
 ## Setup
 
@@ -90,8 +91,8 @@ php artisan queue:work redis --queue=default
 | `critical`      | Payment webhooks (Batch 5)                                  |
 | `registrations` | Registration finalization, waitlist promotion (Batches 2/4) |
 | `notifications` | Attendee emails (confirmation, cancellation, reminder)      |
-| `documents`     | PDF e-receipt and ticket generation (Batch 6)               |
-| `exports`       | CSV / ZIP exports (Batch 7)                                 |
+| `documents`     | PDF receipts + QR tickets (dompdf, endroid/qr-code)         |
+| `exports`       | Receipt-register CSV + batch PDF ZIP                        |
 | `default`       | Everything else                                             |
 
 Tests use `QUEUE_CONNECTION=sync` (see `phpunit.xml`). Notification dispatches happen via `DB::afterCommit`, so a failed registration transaction never leaks an email.
@@ -105,6 +106,7 @@ Run `php artisan schedule:work` (or add `* * * * * cd /path && php artisan sched
 | `eventflow:expire-pending-registrations` | Every 5 min  | Transitions `payment_pending` registrations older than 30 min to `expired`    |
 | `eventflow:send-event-reminders`         | Every 15 min | Queues reminder emails for confirmed attendees whose event starts within 24 h |
 | `eventflow:mark-events-completed`        | Hourly       | Transitions `Published`/`SoldOut` events past their `ends_at` to `Completed`  |
+| `eventflow:delete-expired-exports`       | Daily        | Removes export files past their 7-day retention; keeps the audit row          |
 
 Every scheduled command is idempotent; re-runs do not double-count or re-notify.
 

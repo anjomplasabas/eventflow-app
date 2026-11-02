@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Organizer\EventController as OrganizerEventController;
+use App\Http\Controllers\Organizer\ExportController as OrganizerExportController;
 use App\Http\Controllers\Organizer\TicketTypeController as OrganizerTicketTypeController;
 use App\Http\Controllers\PaymentSandboxController;
 use App\Http\Controllers\PaymentWebhookController;
@@ -70,6 +71,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('events/{event:public_id}/publish', [OrganizerEventController::class, 'publish'])->name('events.publish');
         Route::post('events/{event:public_id}/cancel', [OrganizerEventController::class, 'cancel'])->name('events.cancel');
         Route::post('events/{event:public_id}/archive', [OrganizerEventController::class, 'archive'])->name('events.archive');
+
+        Route::get('exports', [OrganizerExportController::class, 'index'])->name('exports.index');
+        Route::post('exports/receipt-register', [OrganizerExportController::class, 'storeRegister'])->name('exports.receipt-register');
+        Route::post('exports/receipt-zip', [OrganizerExportController::class, 'storeZip'])->name('exports.receipt-zip');
+        Route::get('exports/{uuid}/download', [OrganizerExportController::class, 'download'])->name('exports.download');
 
         Route::get('events/{event:public_id}/ticket-types', [OrganizerTicketTypeController::class, 'index'])->name('events.ticket-types.index');
         Route::post('events/{event:public_id}/ticket-types', [OrganizerTicketTypeController::class, 'store'])->name('events.ticket-types.store');
