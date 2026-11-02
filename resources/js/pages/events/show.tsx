@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PublicShell } from '@/layouts/public-shell';
 import { Form, Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
@@ -85,41 +86,48 @@ export default function PublicEventShow({
         return (
             <>
                 <Head title={`${event.title} · Private event`} />
-                <div className="mx-auto flex w-full max-w-xl flex-col gap-6 p-6">
-                    <div className="space-y-2">
-                        <Badge variant="outline">Private</Badge>
-                        <h1 className="text-2xl font-semibold">
-                            {event.title}
-                        </h1>
-                        <p className="text-muted-foreground">
-                            Hosted by {organizer.name}
-                        </p>
-                    </div>
-                    <form
-                        method="get"
-                        className="space-y-4 rounded-xl border p-6"
-                    >
-                        <div className="space-y-2">
-                            <Label htmlFor="code">Access code</Label>
-                            <Input
-                                id="code"
-                                name="code"
-                                value={code}
-                                onChange={(e) => setCode(e.target.value)}
-                                autoFocus
-                                required
-                            />
-                            {code_invalid && (
-                                <p className="text-sm text-destructive">
-                                    That code is not valid.
-                                </p>
-                            )}
+                <PublicShell>
+                    <div className="mx-auto w-full max-w-xl pt-12 lg:pt-16">
+                        <div className="mb-6 space-y-3">
+                            <Badge
+                                variant="outline"
+                                className="border-primary/40 bg-primary/10 text-primary"
+                            >
+                                Private event
+                            </Badge>
+                            <h1 className="text-3xl font-semibold tracking-tight">
+                                {event.title}
+                            </h1>
+                            <p className="text-muted-foreground">
+                                Hosted by {organizer.name}
+                            </p>
                         </div>
-                        <Button type="submit" className="w-full">
-                            Unlock event
-                        </Button>
-                    </form>
-                </div>
+                        <form
+                            method="get"
+                            className="space-y-4 rounded-2xl border border-border/70 bg-card p-6 shadow-sm"
+                        >
+                            <div className="space-y-2">
+                                <Label htmlFor="code">Access code</Label>
+                                <Input
+                                    id="code"
+                                    name="code"
+                                    value={code}
+                                    onChange={(e) => setCode(e.target.value)}
+                                    autoFocus
+                                    required
+                                />
+                                {code_invalid && (
+                                    <p className="text-sm text-destructive">
+                                        That code is not valid.
+                                    </p>
+                                )}
+                            </div>
+                            <Button type="submit" className="w-full">
+                                Unlock event
+                            </Button>
+                        </form>
+                    </div>
+                </PublicShell>
             </>
         );
     }
@@ -129,99 +137,139 @@ export default function PublicEventShow({
 
     return (
         <>
-            <Head title={event.title} />
-            <article className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
-                {event.cover_image_url && (
-                    <img
-                        src={event.cover_image_url}
-                        alt=""
-                        className="h-64 w-full rounded-xl object-cover"
-                    />
-                )}
-
-                <header className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        {detail?.category && (
-                            <Badge variant="secondary">{detail.category}</Badge>
-                        )}
-                        {detail?.status && detail.status !== 'published' && (
-                            <Badge variant="outline">{detail.status}</Badge>
-                        )}
-                    </div>
-                    <h1 className="text-3xl font-semibold tracking-tight">
-                        {event.title}
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Hosted by {organizer.name}
-                    </p>
-                </header>
-
-                <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                    <div className="rounded-xl border p-4">
-                        <div className="text-xs text-muted-foreground uppercase">
-                            Starts
-                        </div>
-                        <div className="mt-1 text-sm">
-                            {formatDateTime(event.starts_at)}
-                        </div>
-                    </div>
-                    {detail?.ends_at && (
-                        <div className="rounded-xl border p-4">
-                            <div className="text-xs text-muted-foreground uppercase">
-                                Ends
+            <Head title={`${event.title} · EventFlow`} />
+            <PublicShell>
+                <article className="flex flex-col gap-10 pt-10 lg:pt-14">
+                    <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="space-y-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                                {detail?.category && (
+                                    <Badge
+                                        variant="secondary"
+                                        className="bg-primary/10 text-primary"
+                                    >
+                                        {detail.category}
+                                    </Badge>
+                                )}
+                                {detail?.status &&
+                                    detail.status !== 'published' && (
+                                        <Badge variant="outline">
+                                            {detail.status.replace('_', ' ')}
+                                        </Badge>
+                                    )}
                             </div>
-                            <div className="mt-1 text-sm">
-                                {formatDateTime(detail.ends_at)}
+                            <h1 className="max-w-3xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
+                                {event.title}
+                            </h1>
+                            <p className="text-muted-foreground">
+                                Hosted by{' '}
+                                <span className="font-medium text-foreground">
+                                    {organizer.name}
+                                </span>
+                            </p>
+                        </div>
+                    </header>
+
+                    <div className="relative aspect-[16/7] w-full overflow-hidden rounded-3xl border border-border/70">
+                        {event.cover_image_url ? (
+                            <img
+                                src={event.cover_image_url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <div className="h-full w-full bg-gradient-to-br from-primary/25 via-cyan-400/15 to-sky-400/20">
+                                <div className="h-full w-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_55%)]" />
                             </div>
-                        </div>
-                    )}
-                    <div className="rounded-xl border p-4">
-                        <div className="text-xs text-muted-foreground uppercase">
-                            Timezone
-                        </div>
-                        <div className="mt-1 text-sm">{event.timezone}</div>
+                        )}
                     </div>
-                </section>
 
-                {detail?.description && (
-                    <section className="prose dark:prose-invert max-w-none">
-                        <p className="whitespace-pre-wrap">
-                            {detail.description}
-                        </p>
-                    </section>
-                )}
+                    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
+                        <div className="space-y-8">
+                            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                <InfoTile
+                                    label="Starts"
+                                    value={formatDateTime(event.starts_at)}
+                                />
+                                {detail?.ends_at && (
+                                    <InfoTile
+                                        label="Ends"
+                                        value={formatDateTime(detail.ends_at)}
+                                    />
+                                )}
+                                <InfoTile
+                                    label="Timezone"
+                                    value={event.timezone}
+                                />
+                            </section>
 
-                {detail && (
-                    <RegistrationSection
-                        organizer={organizer}
-                        event={detail}
-                        ticketTypes={ticketTypes}
-                        auth={auth}
-                        accessCode={access_code ?? null}
-                    />
-                )}
+                            {detail?.description && (
+                                <section className="space-y-3">
+                                    <h2 className="text-xl font-semibold tracking-tight">
+                                        About this event
+                                    </h2>
+                                    <p className="leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                                        {detail.description}
+                                    </p>
+                                </section>
+                            )}
 
-                {detail?.attendee_instructions && (
-                    <section className="rounded-xl border p-4">
-                        <h2 className="mb-2 font-medium">Attendee notes</h2>
-                        <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                            {detail.attendee_instructions}
-                        </p>
-                    </section>
-                )}
+                            {detail?.attendee_instructions && (
+                                <InfoCard title="Attendee notes">
+                                    {detail.attendee_instructions}
+                                </InfoCard>
+                            )}
 
-                {detail?.cancellation_policy && (
-                    <section className="rounded-xl border p-4">
-                        <h2 className="mb-2 font-medium">
-                            Cancellation policy
-                        </h2>
-                        <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                            {detail.cancellation_policy}
-                        </p>
-                    </section>
-                )}
-            </article>
+                            {detail?.cancellation_policy && (
+                                <InfoCard title="Cancellation policy">
+                                    {detail.cancellation_policy}
+                                </InfoCard>
+                            )}
+                        </div>
+
+                        {detail && (
+                            <aside className="lg:sticky lg:top-6 lg:self-start">
+                                <RegistrationSection
+                                    organizer={organizer}
+                                    event={detail}
+                                    ticketTypes={ticketTypes}
+                                    auth={auth}
+                                    accessCode={access_code ?? null}
+                                />
+                            </aside>
+                        )}
+                    </div>
+                </article>
+            </PublicShell>
         </>
+    );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-2xl border border-border/70 bg-card p-4">
+            <div className="text-xs tracking-wide text-muted-foreground uppercase">
+                {label}
+            </div>
+            <div className="mt-1 text-sm font-medium">{value}</div>
+        </div>
+    );
+}
+
+function InfoCard({
+    title,
+    children,
+}: {
+    title: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <section className="rounded-2xl border border-border/70 bg-card p-5">
+            <h2 className="mb-2 font-medium">{title}</h2>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                {children}
+            </p>
+        </section>
     );
 }
 
@@ -248,35 +296,35 @@ function RegistrationSection({
 
     if (event.status !== 'published' && event.status !== 'scheduled') {
         return (
-            <section className="rounded-xl border p-6 text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-border/70 bg-card p-6 text-sm text-muted-foreground">
                 Registration is not currently open for this event.
-            </section>
+            </div>
         );
     }
 
     if (ticketTypes.length === 0) {
         return (
-            <section className="rounded-xl border p-6 text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-border/70 bg-card p-6 text-sm text-muted-foreground">
                 No ticket types are available yet. Check back soon.
-            </section>
+            </div>
         );
     }
 
     if (!auth.user) {
         return (
-            <section className="rounded-xl border p-6">
-                <h2 className="mb-2 font-medium">Register for this event</h2>
+            <div className="rounded-2xl border border-border/70 bg-card p-6">
+                <h2 className="mb-2 font-semibold">Register for this event</h2>
                 <p className="mb-4 text-sm text-muted-foreground">
-                    Please sign in to continue.
+                    Sign in to secure your spot — takes a moment.
                 </p>
-                <Button asChild>
+                <Button asChild className="w-full">
                     <Link
                         href={`/login?intended=/events/${organizer.slug}/${event.slug}`}
                     >
                         Sign in to register
                     </Link>
                 </Button>
-            </section>
+            </div>
         );
     }
 
@@ -284,8 +332,12 @@ function RegistrationSection({
     const user = auth.user;
 
     return (
-        <section className="rounded-xl border p-6">
-            <h2 className="mb-4 font-medium">Register for this event</h2>
+        <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm">
+            <h2 className="mb-1 text-lg font-semibold">Reserve your spot</h2>
+            <p className="mb-5 text-sm text-muted-foreground">
+                Capacity is handled in real time — your seat is locked the
+                moment you submit.
+            </p>
             <Form
                 {...RegistrationController.store.form({
                     organizer: organizer.slug,
@@ -314,7 +366,11 @@ function RegistrationSection({
                                 {ticketTypes.map((t) => (
                                     <label
                                         key={t.id}
-                                        className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${selectedId === t.id ? 'border-foreground' : 'border-border'}`}
+                                        className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition ${
+                                            selectedId === t.id
+                                                ? 'border-primary bg-primary/5'
+                                                : 'border-border hover:border-primary/40'
+                                        }`}
                                     >
                                         <input
                                             type="radio"
@@ -322,14 +378,14 @@ function RegistrationSection({
                                             value={t.id}
                                             checked={selectedId === t.id}
                                             onChange={() => setSelectedId(t.id)}
-                                            className="mt-1"
+                                            className="mt-1 accent-[var(--primary)]"
                                         />
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between gap-2">
                                                 <span className="font-medium">
                                                     {t.name}
                                                 </span>
-                                                <span className="text-muted-foreground">
+                                                <span className="font-medium text-primary">
                                                     {t.price_display}
                                                 </span>
                                             </div>
@@ -345,7 +401,7 @@ function RegistrationSection({
                             <InputError message={errors.ticket_type_id} />
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3">
                             <div className="grid gap-2">
                                 <Label htmlFor="attendee_name">Full name</Label>
                                 <Input
@@ -369,32 +425,32 @@ function RegistrationSection({
                                     message={errors['attendee.email']}
                                 />
                             </div>
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="attendee_phone">
-                                Phone (optional)
-                            </Label>
-                            <Input
-                                id="attendee_phone"
-                                name="attendee[phone]"
-                                type="tel"
-                            />
-                            <InputError message={errors['attendee.phone']} />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="quantity">Quantity</Label>
-                            <Input
-                                id="quantity"
-                                name="quantity"
-                                type="number"
-                                min={selected?.min_per_order ?? 1}
-                                max={selected?.max_per_order ?? 1}
-                                defaultValue={selected?.min_per_order ?? 1}
-                                required
-                            />
-                            <InputError message={errors.quantity} />
+                            <div className="grid gap-2">
+                                <Label htmlFor="attendee_phone">
+                                    Phone (optional)
+                                </Label>
+                                <Input
+                                    id="attendee_phone"
+                                    name="attendee[phone]"
+                                    type="tel"
+                                />
+                                <InputError
+                                    message={errors['attendee.phone']}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="quantity">Quantity</Label>
+                                <Input
+                                    id="quantity"
+                                    name="quantity"
+                                    type="number"
+                                    min={selected?.min_per_order ?? 1}
+                                    max={selected?.max_per_order ?? 1}
+                                    defaultValue={selected?.min_per_order ?? 1}
+                                    required
+                                />
+                                <InputError message={errors.quantity} />
+                            </div>
                         </div>
 
                         <label className="flex items-start gap-2 text-sm">
@@ -403,9 +459,9 @@ function RegistrationSection({
                                 name="terms_accepted"
                                 value="1"
                                 required
-                                className="mt-1"
+                                className="mt-1 accent-[var(--primary)]"
                             />
-                            <span>
+                            <span className="text-muted-foreground">
                                 I agree to the event terms and cancellation
                                 policy.
                             </span>
@@ -413,14 +469,16 @@ function RegistrationSection({
                         <InputError message={errors.terms_accepted} />
                         <InputError message={errors.registration} />
 
-                        <div className="flex justify-end">
-                            <Button type="submit" disabled={processing}>
-                                Complete registration
-                            </Button>
-                        </div>
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            className="w-full"
+                        >
+                            Complete registration
+                        </Button>
                     </>
                 )}
             </Form>
-        </section>
+        </div>
     );
 }
