@@ -8,8 +8,9 @@ Production-style event registration and check-in platform built with Laravel 13,
 - **Batch 2 — Registration Core** ✅ Ticket types, transactional capacity reservation with `lockForUpdate`, free-registration flow, idempotency keys, public ticket selection + confirmation + cancellation, concurrency test proving the last-seat invariant.
 - **Batch 3 — Queues & Notifications** ✅ Queued mailables, scheduled commands for expiring abandoned registrations, event reminders, and auto-completing events.
 - **Batch 4 — Waitlist** ✅ FIFO waitlist with per-event opt-in and optional capacity cap, auto-promotion on cancel/expire with lockForUpdate, free → confirmed and paid → payment_pending, dedicated join/promoted notifications.
+- **Batch 5 — Payments & Webhooks** ✅ `PaymentGateway` interface with a sandbox adapter, signed-webhook inbox with idempotent `provider_event_id` dedupe, `ProcessPaymentWebhook` job on the `critical` queue, out-of-order replay protection, refund workflow with partial/full refund status transitions.
 
-Remaining batches: payments · tickets/e-receipts · check-in/reporting · hardening.
+Remaining batches: tickets/e-receipts · check-in/reporting · hardening.
 
 ## Setup
 
@@ -56,7 +57,7 @@ composer test        # same, used in CI
 vendor/bin/pest      # just the test suite
 ```
 
-Current suite: **180 tests / 500 assertions** across unit, feature, policy, concurrency, scheduled-command, and waitlist-promotion coverage.
+Current suite: **207 tests / 571 assertions** across unit, feature, policy, concurrency, scheduled-command, waitlist-promotion, and payment-webhook coverage.
 
 ## Architecture notes
 

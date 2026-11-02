@@ -3,11 +3,17 @@
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Organizer\EventController as OrganizerEventController;
 use App\Http\Controllers\Organizer\TicketTypeController as OrganizerTicketTypeController;
+use App\Http\Controllers\PaymentSandboxController;
+use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
 use App\Http\Controllers\RegistrationController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+
+Route::post('webhooks/payments/{provider}', PaymentWebhookController::class)
+    ->middleware('throttle:120,1')
+    ->name('payments.webhook');
 
 Route::get('events', [PublicEventController::class, 'index'])->name('events.index');
 Route::get('events/{organizer:slug}/{event:slug}', [PublicEventController::class, 'show'])
@@ -28,6 +34,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('me/registrations', [RegistrationController::class, 'index'])->name('me.registrations.index');
     Route::get('me/registrations/{reference}', [RegistrationController::class, 'show'])->name('me.registrations.show');
     Route::post('me/registrations/{reference}/cancel', [RegistrationController::class, 'cancel'])->name('me.registrations.cancel');
+
+    Route::get('payments/sandbox/{reference}', [PaymentSandboxController::class, 'show'])->name('payments.sandbox.show');
+    Route::post('payments/sandbox/{reference}/complete', [PaymentSandboxController::class, 'complete'])->name('payments.sandbox.complete');
 
     Route::scopeBindings()->prefix('organizer/{organizer:slug}')->name('organizer.')->group(function () {
         Route::get('events', [OrganizerEventController::class, 'index'])->name('events.index');

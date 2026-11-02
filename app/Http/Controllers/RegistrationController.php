@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Payments\InitializeCheckout;
 use App\Actions\Registrations\CancelRegistration;
 use App\Actions\Registrations\CreateRegistration;
 use App\Enums\EventVisibility;
@@ -60,6 +61,12 @@ class RegistrationController extends Controller
             );
         } catch (CapacityExhausted|RegistrationNotAllowed|IdempotencyConflict $e) {
             return back()->withErrors(['registration' => $e->getMessage()])->withInput();
+        }
+
+        if ($registration->status === RegistrationStatus::PaymentPending) {
+            ['session' => $session] = app(InitializeCheckout::class)($registration);
+
+            return redirect($session->redirectUrl);
         }
 
         return redirect()->route('events.registration.confirmation', [

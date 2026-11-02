@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\Payments\PaymentGateway;
+use App\Services\Payments\FakePaymentGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -10,12 +12,13 @@ use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->singleton(PaymentGateway::class, function (): PaymentGateway {
+            $secret = (string) config('services.payments.webhook_secret', 'local-dev-secret');
+
+            return new FakePaymentGateway($secret);
+        });
     }
 
     /**
