@@ -50,6 +50,8 @@ export default defineConfig({
             'resources/js/components/ui/*',
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
+            'tests/e2e/**',
+            'playwright.config.ts',
         ],
         options: {
             denyWarnings: true,
@@ -69,6 +71,8 @@ export default defineConfig({
             'resources/js/components/ui/*',
             'resources/views/mail/**',
             'resources/views/vendor/**',
+            'tests/e2e/**',
+            'playwright.config.ts',
         ],
         sortTailwindcss: {
             functions: ['clsx', 'cn', 'cva'],

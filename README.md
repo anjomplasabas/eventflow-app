@@ -10,8 +10,10 @@ Production-style event registration and check-in platform built with Laravel 13,
 - **Batch 4 — Waitlist** ✅ FIFO waitlist with per-event opt-in and optional capacity cap, auto-promotion on cancel/expire with lockForUpdate, free → confirmed and paid → payment_pending, dedicated join/promoted notifications.
 - **Batch 5 — Payments & Webhooks** ✅ `PaymentGateway` interface with a sandbox adapter, signed-webhook inbox with idempotent `provider_event_id` dedupe, `ProcessPaymentWebhook` job on the `critical` queue, out-of-order replay protection, refund workflow with partial/full refund status transitions.
 - **Batch 6 — Tickets & E-Receipts** ✅ Immutable receipt snapshots with opaque `RCPT-XXXXXXXXXX` numbers, dompdf-rendered PDFs stored to the private `local` disk via queued jobs, per-seat QR tickets with 32-char opaque tokens, authenticated downloads, public verification page with no PII, organizer-triggered CSV receipt register + batch ZIP exports with 7-day expiry and daily cleanup.
+- **Batch 7 — Check-In & Reporting** ✅ `CheckInAttendee` + `ReverseCheckIn` actions with lockForUpdate on the ticket, mobile-first html5-qrcode scanner UI with 5-state outcome display, manual lookup, role-aware dashboard with revenue + check-in metrics, attendee + check-in CSV exports.
+- **Batch 8 — Hardening** ✅ Playwright E2E test harness, security headers middleware (CSP-adjacent), capacity stress test, deployment + ops documentation.
 
-Remaining batches: check-in/reporting · hardening.
+All eight batches shipped.
 
 ## Setup
 
@@ -63,7 +65,7 @@ composer test        # same, used in CI
 vendor/bin/pest      # just the test suite
 ```
 
-Current suite: **207 tests / 571 assertions** across unit, feature, policy, concurrency, scheduled-command, waitlist-promotion, and payment-webhook coverage.
+Current suite: **248 tests / 696 assertions** across unit, feature, policy, concurrency, scheduled-command, waitlist-promotion, payment-webhook, receipt / PDF, and check-in coverage. Playwright E2E canary tests live separately in `tests/e2e/` — see "End-to-end tests" below.
 
 ## Architecture notes
 
@@ -123,3 +125,96 @@ Notification failures do **not** roll back a successful registration — the reg
 ## PHPStan memory
 
 `composer types:check` runs PHPStan with `--memory-limit=512M`. The default 128M crashes parallel workers on this codebase; the override lives in `composer.json`.
+
+## End-to-end tests
+
+Playwright smoke tests live in `tests/e2e/`. They boot a dev server with a freshly seeded SQLite DB:
+
+```bash
+npm run test:e2e        # headless
+npm run test:e2e:ui     # Playwright UI mode
+```
+
+Current coverage: public landing + browse + detail; guest registration happy path; organizer sign-in + workspace reach. Keep this suite small — the hundreds of Pest tests are the authoritative correctness check; E2E is a lightweight canary for the critical UX.
+
+## Deployment
+
+Minimum production bootstrap:
+
+```bash
+composer install --no-dev --optimize-autoloader
+cp .env.example .env  # fill in real values
+php artisan key:generate
+php artisan migrate --force
+php artisan storage:link
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+npm ci && npm run build
+```
+
+**Required env vars**
+
+| Var                       | Why                                                               |
+| ------------------------- | ----------------------------------------------------------------- |
+| `APP_URL`                 | Used in receipt QR codes + verification links                     |
+| `APP_KEY`                 | Laravel encryption                                                |
+| `DB_*`                    | MySQL / Postgres connection (SQLite is dev-only)                  |
+| `QUEUE_CONNECTION=redis`  | Use Redis in production so workers can scale                      |
+| `REDIS_*`                 | Queue + cache + session backend                                   |
+| `MAIL_*`                  | Transactional mail provider                                       |
+| `PAYMENTS_WEBHOOK_SECRET` | HMAC secret for the sandbox gateway (swap for your real provider) |
+| `SESSION_DRIVER=redis`    | Or `database` if Redis is not available                           |
+
+**Processes to run**
+
+- Web (PHP-FPM or `php artisan serve` behind nginx)
+- Queue workers — one per workload queue (`critical`, `registrations`, `notifications`, `documents`, `exports`, `default`); use Horizon or supervise with systemd / supervisor
+- Scheduler — a cron entry hitting `php artisan schedule:run` every minute, or `php artisan schedule:work` as a long-running process
+
+**Pre-flight checks before cutover**
+
+- `php artisan queue:failed` is empty
+- `php artisan tinker` → `DB::select('select 1')` returns a row
+- `/up` health endpoint returns 200
+- At least one job dispatched + processed on each queue
+- `storage/app/receipts` is writable and private (NOT in the `public/` disk)
+- CSRF + HTTPS cookies are set in `config/session.php` for the `secure` + `same_site` keys
+- `PAYMENTS_WEBHOOK_SECRET` matches what you configured in the real payment provider's dashboard
+
+## Security checklist
+
+Already hardened:
+
+- Password hashing (Argon via Fortify)
+- CSRF on every state-changing route except `webhooks/*` (which uses signature verification instead)
+- Rate limits on authentication, registration, guest registration, and webhook endpoints
+- Private storage disk for receipts + QR images; downloads are owner-only
+- Opaque public identifiers (ULIDs, receipt numbers, ticket tokens) — no sequential IDs leaked
+- Signed webhook verification with `hash_equals` constant-time comparison
+- Policies enforced server-side (no reliance on hiding buttons in React)
+- Audit log for all mutating business actions
+- `SecurityHeaders` middleware adds `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security` on HTTPS
+
+Before going live:
+
+- Add a Content-Security-Policy header matching your CDN + inline-script policy
+- Audit all `.env` secrets, rotate `APP_KEY`
+- Enable 2FA for organizer owner + system admin accounts (Fortify already supports this via the Security settings page)
+- Review Horizon / failed-job dashboard access control
+- Confirm database backups + point-in-time recovery
+- Run `composer audit` + `npm audit` in CI
+
+## Performance checklist
+
+- Key reads use indexed columns (see migrations — composite indexes on `(organizer_id, status)`, `(event_id, status)`, `(provider, provider_event_id)`, `(ticket_type_id, status, waitlist_position)`, etc.)
+- Lists cap at reasonable sizes (public events: 60; admin exports: chunked at 500)
+- Capacity decisions use `lockForUpdate` inside a transaction — serialized on MySQL/Postgres row-level, serialized on SQLite via database-level write lock
+- Queue workloads are segregated so a slow PDF render never blocks a critical webhook
+
+Watch in production:
+
+- Queue depth per queue (`notifications`, `documents` tend to spike)
+- Failed-job rate (any trend is a signal)
+- PDF generation duration (dompdf isn't fast — if it hurts, swap `ReceiptRenderer` for a browserless/puppeteer implementation)
+- Webhook endpoint latency + duplicate rate (`provider_event_id` dedupe stats)
+
+Run N+1 detection in local dev with Laravel's query log or install Debugbar (`composer require --dev barryvdh/laravel-debugbar`) when investigating a slow page.
