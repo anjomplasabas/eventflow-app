@@ -11,9 +11,11 @@ use App\Models\Event;
 use App\Models\Registration;
 use App\Models\TicketType;
 use App\Models\User;
+use App\Notifications\RegistrationConfirmedNotification;
 use App\Services\Audit\AuditLogger;
 use App\Services\Registration\CapacityCalculator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class CreateRegistration
 {
@@ -92,6 +94,17 @@ class CreateRegistration
                 'quantity' => $registration->quantity,
                 'ticket_type_id' => $lockedTicketType->id,
             ], actor: $user);
+
+            if ($registration->status === RegistrationStatus::Confirmed) {
+                $attendeeEmail = $attendee['email'];
+                $attendeeName = $attendee['name'];
+                $registrationId = $registration->id;
+                DB::afterCommit(function () use ($registrationId, $attendeeEmail, $attendeeName): void {
+                    $registration = Registration::query()->with(['event.organizer', 'ticketType', 'attendees'])->findOrFail($registrationId);
+                    Notification::route('mail', [$attendeeEmail => $attendeeName])
+                        ->notify(new RegistrationConfirmedNotification($registration));
+                });
+            }
 
             return $registration;
         });

@@ -6,8 +6,10 @@ use App\Enums\RegistrationStatus;
 use App\Exceptions\InvalidEventStateTransition;
 use App\Models\Registration;
 use App\Models\User;
+use App\Notifications\RegistrationCancelledNotification;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class CancelRegistration
 {
@@ -31,6 +33,19 @@ class CancelRegistration
                 'status' => $registration->status->value,
                 'reason' => $reason,
             ], actor: $actor);
+
+            $registrationId = $registration->id;
+            DB::afterCommit(function () use ($registrationId, $reason): void {
+                $registration = Registration::query()
+                    ->with(['event.organizer', 'ticketType', 'attendees'])
+                    ->findOrFail($registrationId);
+                $attendee = $registration->attendees->first();
+                if ($attendee === null) {
+                    return;
+                }
+                Notification::route('mail', [$attendee->email => $attendee->name])
+                    ->notify(new RegistrationCancelledNotification($registration, $reason));
+            });
 
             return $registration;
         });

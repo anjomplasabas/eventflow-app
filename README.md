@@ -4,9 +4,11 @@ Production-style event registration and check-in platform built with Laravel 13,
 
 ## Status
 
-**Batch 1 — Foundation** complete. Covers roles, organizers + team membership, event CRUD with policies, audit log, `Money` value object, deterministic seeders, public event listing, and a minimal admin UI for role/membership management.
+- **Batch 1 — Foundation** ✅ Roles, organizers + team membership, event CRUD with policies, audit log, `Money` value object, deterministic seeders, admin UI.
+- **Batch 2 — Registration Core** ✅ Ticket types, transactional capacity reservation with `lockForUpdate`, free-registration flow, idempotency keys, public ticket selection + confirmation + cancellation, concurrency test proving the last-seat invariant.
+- **Batch 3 — Queues & Notifications** ✅ Queued mailables, scheduled commands for expiring abandoned registrations, event reminders, and auto-completing events.
 
-Remaining batches: registration core · queues/notifications · waitlist · payments · tickets/e-receipts · check-in/reporting · hardening.
+Remaining batches: waitlist · payments · tickets/e-receipts · check-in/reporting · hardening.
 
 ## Setup
 
@@ -53,7 +55,7 @@ composer test        # same, used in CI
 vendor/bin/pest      # just the test suite
 ```
 
-Current suite: **95+ tests** across unit, feature, and policy coverage.
+Current suite: **168 tests / 474 assertions** across unit, feature, policy, concurrency, and scheduled-command coverage.
 
 ## Architecture notes
 
@@ -62,6 +64,52 @@ Current suite: **95+ tests** across unit, feature, and policy coverage.
 - **Actions** (`app/Actions/Events/`) wrap mutations in a DB transaction and emit audit entries through `AuditLogger`.
 - **Money** (`app/Support/Money.php`) is a readonly value object using integer minor units; floats are never used for currency.
 - **Wayfinder** generates typed route helpers under `resources/js/actions/` and `resources/js/routes/`; frontend code should import from those rather than hard-coding URLs. Regenerate with `php artisan wayfinder:generate` after route changes.
+
+## Queue layout
+
+Notifications and jobs are dispatched to named queues so a Redis worker (or Horizon) can prioritise them. Set `QUEUE_CONNECTION=redis` in `.env` and run one worker per queue in production:
+
+```bash
+php artisan queue:work redis --queue=critical
+php artisan queue:work redis --queue=registrations
+php artisan queue:work redis --queue=notifications
+php artisan queue:work redis --queue=documents
+php artisan queue:work redis --queue=exports
+php artisan queue:work redis --queue=default
+```
+
+| Queue           | Workload                                                    |
+| --------------- | ----------------------------------------------------------- |
+| `critical`      | Payment webhooks (Batch 5)                                  |
+| `registrations` | Registration finalization, waitlist promotion (Batches 2/4) |
+| `notifications` | Attendee emails (confirmation, cancellation, reminder)      |
+| `documents`     | PDF e-receipt and ticket generation (Batch 6)               |
+| `exports`       | CSV / ZIP exports (Batch 7)                                 |
+| `default`       | Everything else                                             |
+
+Tests use `QUEUE_CONNECTION=sync` (see `phpunit.xml`). Notification dispatches happen via `DB::afterCommit`, so a failed registration transaction never leaks an email.
+
+## Scheduled commands
+
+Run `php artisan schedule:work` (or add `* * * * * cd /path && php artisan schedule:run >> /dev/null 2>&1` to cron) in production:
+
+| Command                                  | Cadence      | Purpose                                                                       |
+| ---------------------------------------- | ------------ | ----------------------------------------------------------------------------- |
+| `eventflow:expire-pending-registrations` | Every 5 min  | Transitions `payment_pending` registrations older than 30 min to `expired`    |
+| `eventflow:send-event-reminders`         | Every 15 min | Queues reminder emails for confirmed attendees whose event starts within 24 h |
+| `eventflow:mark-events-completed`        | Hourly       | Transitions `Published`/`SoldOut` events past their `ends_at` to `Completed`  |
+
+Every scheduled command is idempotent; re-runs do not double-count or re-notify.
+
+## Failed-job runbook
+
+- List failures: `php artisan queue:failed`
+- Retry one: `php artisan queue:retry {uuid}`
+- Retry all: `php artisan queue:retry all`
+- Delete one: `php artisan queue:forget {uuid}`
+- Flush all: `php artisan queue:flush`
+
+Notification failures do **not** roll back a successful registration — the registration row persists; the mail is retried from the `failed_jobs` table.
 
 ## PHPStan memory
 
