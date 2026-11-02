@@ -7,9 +7,10 @@ import type { ReactNode } from 'react';
 
 /**
  * Chrome for the authenticated workspace surfaces (dashboard, organizer,
- * admin, settings). Uses a persistent sidebar for multi-section navigation
- * and a compact header strip with the sidebar trigger + breadcrumbs. No
- * decorative glow — this is a tool, not a landing page.
+ * admin, settings, catalogue when signed in). Persistent sidebar + compact
+ * header strip. Content gets a sensible max-width + padding so pages that
+ * previously relied on PublicShell's padded <main> wrapper still look
+ * right inside the sidebar layout.
  */
 export function WorkspaceShell({
     children,
@@ -20,7 +21,9 @@ export function WorkspaceShell({
             <AppSidebar />
             <AppContent variant="sidebar" className="min-w-0 overflow-x-clip">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                {children}
+                <div className="mx-auto w-full max-w-6xl px-6 py-8">
+                    {children}
+                </div>
             </AppContent>
         </AppShell>
     );
