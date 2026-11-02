@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
+import { AdaptiveShell } from '@/layouts/adaptive-shell';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import { PublicShell } from '@/layouts/public-shell';
@@ -10,16 +11,19 @@ import SettingsLayout from '@/layouts/settings/layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'EventFlow';
 
-const PUBLIC_PAGE_PREFIXES = ['welcome', 'events/', 'me/', 'payments/'];
+/**
+ * Pages that stay public-feeling regardless of auth state. The landing
+ * stays marketing-feel even if the visitor happens to be logged in; the
+ * moment they click into the app the chrome adapts.
+ */
+const ALWAYS_PUBLIC_PAGES = new Set(['welcome']);
 
-function isPublicShellPage(name: string): boolean {
-    return PUBLIC_PAGE_PREFIXES.some(
-        (prefix) => name === prefix || name.startsWith(prefix),
-    );
+function AlwaysPublic({ children }: { children: ReactNode }) {
+    return <PublicShell>{children}</PublicShell>;
 }
 
-function PublicLayout({ children }: { children: ReactNode }) {
-    return <PublicShell>{children}</PublicShell>;
+function Adaptive({ children }: { children: ReactNode }) {
+    return <AdaptiveShell>{children}</AdaptiveShell>;
 }
 
 void createInertiaApp({
@@ -28,12 +32,12 @@ void createInertiaApp({
         switch (true) {
             case name.startsWith('auth/'):
                 return AuthLayout;
+            case ALWAYS_PUBLIC_PAGES.has(name):
+                return AlwaysPublic;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
-            case isPublicShellPage(name):
-                return PublicLayout;
             default:
-                return AppLayout;
+                return Adaptive;
         }
     },
     strictMode: true,
