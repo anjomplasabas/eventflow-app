@@ -3,11 +3,14 @@
 namespace App\Actions\Receipts;
 
 use App\Enums\ReceiptStatus;
+use App\Jobs\GenerateReceiptPdf;
 use App\Models\Payment;
 use App\Models\Receipt;
 use App\Models\Registration;
+use App\Notifications\ReceiptIssuedNotification;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class IssueReceipt
 {
@@ -92,6 +95,19 @@ class IssueReceipt
                 'total_minor' => $receipt->total_minor,
                 'currency' => $receipt->currency,
             ]);
+
+            $receiptId = $receipt->id;
+            $attendeeEmail = (string) ($receipt->attendee_snapshot['email'] ?? '');
+            $attendeeName = (string) ($receipt->attendee_snapshot['name'] ?? '');
+
+            DB::afterCommit(function () use ($receiptId, $attendeeEmail, $attendeeName): void {
+                GenerateReceiptPdf::dispatch($receiptId);
+                if ($attendeeEmail !== '') {
+                    $receipt = Receipt::query()->findOrFail($receiptId);
+                    Notification::route('mail', [$attendeeEmail => $attendeeName])
+                        ->notify(new ReceiptIssuedNotification($receipt));
+                }
+            });
 
             return $receipt;
         });

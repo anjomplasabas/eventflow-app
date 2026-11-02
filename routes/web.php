@@ -6,7 +6,9 @@ use App\Http\Controllers\Organizer\TicketTypeController as OrganizerTicketTypeCo
 use App\Http\Controllers\PaymentSandboxController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\Public\EventController as PublicEventController;
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -19,6 +21,10 @@ Route::get('events', [PublicEventController::class, 'index'])->name('events.inde
 Route::get('events/{organizer:slug}/{event:slug}', [PublicEventController::class, 'show'])
     ->scopeBindings()
     ->name('events.show');
+
+// Public receipt verification — shows only {reference, event title, issued status}, no PII.
+Route::get('verify/receipts/{publicNumber}', [ReceiptController::class, 'verify'])
+    ->name('receipts.verify');
 
 // Guest registration — no auth; creates an attendee account on the fly.
 Route::post('events/{organizer:slug}/{event:slug}/guest-register', [RegistrationController::class, 'guestStore'])
@@ -40,6 +46,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('me/registrations', [RegistrationController::class, 'index'])->name('me.registrations.index');
     Route::get('me/registrations/{reference}', [RegistrationController::class, 'show'])->name('me.registrations.show');
     Route::post('me/registrations/{reference}/cancel', [RegistrationController::class, 'cancel'])->name('me.registrations.cancel');
+
+    Route::get('me/receipts/{publicNumber}', [ReceiptController::class, 'show'])->name('me.receipts.show');
+    Route::get('me/receipts/{publicNumber}/download', [ReceiptController::class, 'download'])->name('me.receipts.download');
+
+    Route::get('me/tickets/{publicToken}', [TicketController::class, 'show'])->name('me.tickets.show');
+    Route::get('me/tickets/{publicToken}/qr', [TicketController::class, 'qr'])->name('me.tickets.qr');
 
     Route::get('payments/sandbox/{reference}', [PaymentSandboxController::class, 'show'])->name('payments.sandbox.show');
     Route::post('payments/sandbox/{reference}/complete', [PaymentSandboxController::class, 'complete'])->name('payments.sandbox.complete');

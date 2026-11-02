@@ -2,6 +2,7 @@
 
 namespace App\Actions\Tickets;
 
+use App\Jobs\GenerateTicketQrCode;
 use App\Models\Registration;
 use App\Models\RegistrationAttendee;
 use App\Models\Ticket;
@@ -57,6 +58,13 @@ class IssueTickets
                 $this->audit->record('tickets.issued', $registration, after: [
                     'tickets' => array_map(fn (Ticket $t) => $t->public_token, $created),
                 ]);
+
+                $createdIds = array_map(fn (Ticket $t) => $t->id, $created);
+                DB::afterCommit(function () use ($createdIds): void {
+                    foreach ($createdIds as $id) {
+                        GenerateTicketQrCode::dispatch($id);
+                    }
+                });
             }
 
             return [...$existing, ...$created];

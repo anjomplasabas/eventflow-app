@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Contracts\Payments\PaymentGateway;
+use App\Contracts\Receipts\ReceiptRenderer;
 use App\Services\Payments\FakePaymentGateway;
+use App\Services\Receipts\DompdfReceiptRenderer;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
 
             return new FakePaymentGateway($secret);
         });
+
+        $this->app->singleton(ReceiptRenderer::class, DompdfReceiptRenderer::class);
     }
 
     /**
