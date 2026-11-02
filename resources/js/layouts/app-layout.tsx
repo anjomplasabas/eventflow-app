@@ -1,16 +1,12 @@
-import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
+import { PublicShell } from '@/layouts/public-shell';
 import type { BreadcrumbItem } from '@/types';
 
 export default function AppLayout({
-    breadcrumbs = [],
+    breadcrumbs: _breadcrumbs = [],
     children,
 }: {
     breadcrumbs?: BreadcrumbItem[];
     children: React.ReactNode;
 }) {
-    return (
-        <AppLayoutTemplate breadcrumbs={breadcrumbs}>
-            {children}
-        </AppLayoutTemplate>
-    );
+    return <PublicShell width="wide">{children}</PublicShell>;
 }
